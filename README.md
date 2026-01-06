@@ -94,8 +94,5 @@ message --uid=custom-uid-optional "Plain-text body that must appear above the fo
 
 Under the hood it calls `mailer.py`, enforces the subject `560d2b1e-b42b-4959-a133-1c68ad916076`, and appends the UID footer (`560d2b1e-b42b-4959-a133-1c68ad916076` by default).
 
-## 📜 License
-MIT-style; see `LICENSE` for the exact terms.
-
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️
