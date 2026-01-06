@@ -12,7 +12,8 @@ DEFAULT_URL = (
     "mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7"
 )
 DEFAULT_UID = "560d2b1e-b42b-4959-a133-1c68ad916076"
-DEFAULT_ENDPOINT = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA"
+BASE_WEBSOCKET_URL = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
+DEFAULT_WS_PARAMETER = "IPHONE-DATA"
 
 
 def build_payload(message: str, uid: str, endpoint: str, gyro: str, light: float) -> dict:
@@ -117,9 +118,9 @@ def parse_args() -> argparse.Namespace:
         help="Identifier used across the payload (default: %(default)s).",
     )
     parser.add_argument(
-        "--endpoint",
-        default=DEFAULT_ENDPOINT,
-        help="Value stored in the payload's endpoint field.",
+        "--ws-parameter",
+        default=DEFAULT_WS_PARAMETER,
+        help="Suffix appended to the telemetry WebSocket URL.",
     )
     parser.add_argument(
         "--gyro",
@@ -137,7 +138,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    payload = build_payload(args.message, args.uid, args.endpoint, args.gyro, args.light)
+    endpoint = f"{BASE_WEBSOCKET_URL}/{args.ws_parameter}"
+    payload = build_payload(args.message, args.uid, endpoint, args.gyro, args.light)
     send_payload(args.url, payload)
 
 

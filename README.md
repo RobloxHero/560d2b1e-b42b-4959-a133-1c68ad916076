@@ -98,11 +98,11 @@ Under the hood it calls `mailer.py`, enforces the subject `560d2b1e-b42b-4959-a1
 Fire a manual event at Mozilla’s ingestion endpoint with:
 
 ```bash
-python send_telemetry.py "Body text for the telemetry message."
+python sendTelemetryTest.py "Body text for the telemetry message."
 ```
 
 - The URL defaults to `https://incoming.telemetry.mozilla.org/submit/mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7`.
-- Override values (UID, WebSocket endpoint, gyroscope vector, light level) via `--uid`, `--endpoint`, `--gyro`, and `--light`. The default endpoint is `wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA`.
+- Override values (UID, WebSocket suffix, gyroscope vector, light level) via `--uid`, `--ws-parameter`, `--gyro`, and `--light`. The WebSocket URL is always `wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/{parameter}`.
 - The script posts JSON using the same payload shape produced by the iOS app, so it’s handy for backend smoke tests.
 
 ### Continuous Cron/Launchd Job
@@ -112,7 +112,7 @@ Need automated pings every 5 seconds on macOS? Use the provided loop script:
 ./send_telemetry_cron.sh
 ```
 
-It wraps `send_telemetry.py` in an infinite loop with a 5-second sleep, making it easy to launch under `cron` or `launchd`. Example `crontab` line:
+It wraps `sendTelemetryTest.py` in an infinite loop with a 5-second sleep, making it easy to launch under `cron` or `launchd`. Example `crontab` line:
 
 ```
 * * * * * /usr/bin/env bash /path/to/send_telemetry_cron.sh >/tmp/telemetry.log 2>&1
@@ -127,7 +127,7 @@ To hammer the ingestion endpoint with repeated events (default: 10 000 sends, 
 python send_telemetry_burst.py
 ```
 
-Adjust `--count`, `--interval`, or any payload fields as needed. **Note:** this generates sustained traffic (≈17 minutes at 10 req/s), so coordinate with the receiving service before running it.
+Adjust `--count`, `--interval`, `--ws-parameter`, or any payload fields as needed. Pass `--continuous` to run indefinitely. **Note:** this generates sustained traffic (≈17 minutes at 10 req/s for the default run), so coordinate with the receiving service before running it.
 
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️
