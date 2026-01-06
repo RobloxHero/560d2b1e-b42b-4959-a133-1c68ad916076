@@ -74,6 +74,13 @@
 - **No packets** – Ensure your server accepts WebSocket text frames and that TLS certs are trusted on device.
 - **Background stops early** – Consider BGProcessingTasks or a relay server for mission-critical workloads; iOS may throttle long sessions.
 
+## ✅ Tests
+- `python3 sendTelemetryTest.py "README screenshot verification"` → `[Status: 200 OK]`
+
+## 📸 Screenshots
+![Main Telemetry View](docs/screenshots/main-view.png)
+![Sensor & Interval Options](docs/screenshots/options.png)
+
 ## 📮 SMTP Mailer Helper
 Need the required email format without leaving your terminal (or GPT command)? Run:
 
@@ -127,7 +134,7 @@ To hammer the ingestion endpoint with repeated events (default: 10 000 sends, 
 python send_telemetry_burst.py
 ```
 
-Adjust `--count`, `--interval`, `--ws-parameter`, or any payload fields as needed. Pass `--continuous` to run indefinitely. **Note:** this generates sustained traffic (≈17 minutes at 10 req/s for the default run), so coordinate with the receiving service before running it.
+Adjust `--count`, `--interval`, `--ws-parameter`, or any payload fields as needed (you can also set `BURST_INTERVAL=0.05` in the environment to change the default interval). Pass `--continuous` to run indefinitely. **Note:** this generates sustained traffic (≈17 minutes at 10 req/s for the default run), so coordinate with the receiving service before running it.
 
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️

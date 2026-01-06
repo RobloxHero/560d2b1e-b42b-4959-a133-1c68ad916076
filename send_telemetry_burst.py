@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -16,7 +17,11 @@ DEFAULT_UID = "560d2b1e-b42b-4959-a133-1c68ad916076"
 BASE_WEBSOCKET_URL = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
 DEFAULT_WS_PARAMETER = "IPHONE-DATA"
 DEFAULT_COUNT = 10_000
-DEFAULT_INTERVAL = 0.1  # seconds
+ENV_INTERVAL = os.environ.get("BURST_INTERVAL")
+try:
+    DEFAULT_INTERVAL = float(ENV_INTERVAL) if ENV_INTERVAL is not None else 0.1
+except ValueError:
+    DEFAULT_INTERVAL = 0.1  # Fallback if env var invalid
 
 
 def build_payload(message: str, uid: str, endpoint: str, gyro: str, light: float) -> dict:
