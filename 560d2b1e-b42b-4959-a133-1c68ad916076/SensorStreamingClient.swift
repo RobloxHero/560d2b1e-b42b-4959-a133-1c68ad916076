@@ -55,7 +55,7 @@ final class SensorStreamingClient {
         configuration.waitsForConnectivity = true
         configuration.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: configuration)
-        self.webSocketURL = URL(string: "wss://example.org/telemetry")!
+        self.webSocketURL = URL(string: "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA")!
         self.startupDateString = ISO8601DateFormatter().string(from: Date())
     }
 

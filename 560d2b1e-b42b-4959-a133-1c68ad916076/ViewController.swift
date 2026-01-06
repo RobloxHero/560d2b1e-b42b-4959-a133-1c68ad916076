@@ -27,7 +27,7 @@ final class ViewController: UIViewController {
         titleLabel.font = .preferredFont(forTextStyle: .title2)
 
         urlField.borderStyle = .roundedRect
-        urlField.placeholder = "wss://example.org/telemetry"
+        urlField.placeholder = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA"
         urlField.keyboardType = .URL
         urlField.autocapitalizationType = .none
         urlField.autocorrectionType = .no

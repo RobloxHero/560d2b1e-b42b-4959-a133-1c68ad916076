@@ -38,7 +38,7 @@
         "uuid": "560d2b1e-b42b-4959-a133-1c68ad916076",
         "gyroscope": { "x": 0.12, "y": -0.05, "z": 0.91 },
         "lightLevel": 0.73,
-        "endpoint": "wss://example.org/telemetry",
+        "endpoint": "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA",
         "device_model": "iPhone",
         "system_name": "iOS",
         "system_version": "18.2",
@@ -93,6 +93,17 @@ message --uid=custom-uid-optional "Plain-text body that must appear above the fo
 ```
 
 Under the hood it calls `mailer.py`, enforces the subject `560d2b1e-b42b-4959-a133-1c68ad916076`, and appends the UID footer (`560d2b1e-b42b-4959-a133-1c68ad916076` by default).
+
+## 🌐 Telemetry Submitter
+Fire a manual event at Mozilla’s ingestion endpoint with:
+
+```bash
+python send_telemetry.py "Body text for the telemetry message."
+```
+
+- The URL defaults to `https://incoming.telemetry.mozilla.org/submit/mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7`.
+- Override values (UID, WebSocket endpoint, gyroscope vector, light level) via `--uid`, `--endpoint`, `--gyro`, and `--light`. The default endpoint is `wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA`.
+- The script posts JSON using the same payload shape produced by the iOS app, so it’s handy for backend smoke tests.
 
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️
