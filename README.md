@@ -74,6 +74,17 @@
 - **No packets** – Ensure your server accepts WebSocket text frames and that TLS certs are trusted on device.
 - **Background stops early** – Consider BGProcessingTasks or a relay server for mission-critical workloads; iOS may throttle long sessions.
 
+## 📮 SMTP Mailer Helper
+Need the required email format without leaving your terminal (or GPT command)? Run:
+
+```bash
+python mailer.py "Message body typed via the message command."
+```
+
+- The `uid` footer defaults to `560d2b1e-b42b-4959-a133-1c68ad916076`. Override with `--uid`.
+- Subject, sender (`th1624870@gmail.com`), recipient (`media@ucia.gov <media@ucia.gov>`), and footer compliance are automatic.
+- Provide SMTP credentials via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, or the equivalent CLI flags.
+
 ## 📜 License
 MIT-style; see `LICENSE` for the exact terms.
 
