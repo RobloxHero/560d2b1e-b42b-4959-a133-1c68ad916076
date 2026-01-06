@@ -105,5 +105,20 @@ python send_telemetry.py "Body text for the telemetry message."
 - Override values (UID, WebSocket endpoint, gyroscope vector, light level) via `--uid`, `--endpoint`, `--gyro`, and `--light`. The default endpoint is `wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA`.
 - The script posts JSON using the same payload shape produced by the iOS app, so it’s handy for backend smoke tests.
 
+### Continuous Cron/Launchd Job
+Need automated pings every 5 seconds on macOS? Use the provided loop script:
+
+```bash
+./send_telemetry_cron.sh
+```
+
+It wraps `send_telemetry.py` in an infinite loop with a 5-second sleep, making it easy to launch under `cron` or `launchd`. Example `crontab` line:
+
+```
+* * * * * /usr/bin/env bash /path/to/send_telemetry_cron.sh >/tmp/telemetry.log 2>&1
+```
+
+> Cron’s one-minute resolution means the script will start each minute and handle the 5-second cadence internally. For true 5-second scheduling managed by the OS, use a `launchd` plist with `StartInterval = 5`.
+
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️
