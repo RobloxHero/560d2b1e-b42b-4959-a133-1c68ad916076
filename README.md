@@ -120,5 +120,14 @@ It wraps `send_telemetry.py` in an infinite loop with a 5-second sleep, making i
 
 > Cron’s one-minute resolution means the script will start each minute and handle the 5-second cadence internally. For true 5-second scheduling managed by the OS, use a `launchd` plist with `StartInterval = 5`.
 
+### Burst Testing
+To hammer the ingestion endpoint with repeated events (default: 10 000 sends, 100 ms apart) while updating the timestamp and message each time, run:
+
+```bash
+python send_telemetry_burst.py
+```
+
+Adjust `--count`, `--interval`, or any payload fields as needed. **Note:** this generates sustained traffic (≈17 minutes at 10 req/s), so coordinate with the receiving service before running it.
+
 ---
 Built with ❤️, Core Motion, and a healthy respect for realtime data. 🛰️

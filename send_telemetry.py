@@ -4,6 +4,7 @@
 import argparse
 import json
 import time
+import urllib.error
 import urllib.request
 
 DEFAULT_URL = (
@@ -83,9 +84,18 @@ def send_payload(url: str, payload: dict) -> None:
             "User-Agent": "telemetry-sender/1.0",
         },
     )
-    with urllib.request.urlopen(request) as response:
-        print(f"Status: {response.status}")
-        print(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request) as response:
+            body = response.read().decode("utf-8")
+            print(f"[{time.strftime('%H:%M:%S')}] Status: {response.status} {response.reason}")
+            if body:
+                print(body)
+    except urllib.error.HTTPError as err:
+        error_body = err.read().decode("utf-8", errors="replace")
+        print(f"[{time.strftime('%H:%M:%S')}] ERROR {err.code}: {err.reason}")
+        if error_body:
+            print(error_body)
+        raise
 
 
 def parse_args() -> argparse.Namespace:
