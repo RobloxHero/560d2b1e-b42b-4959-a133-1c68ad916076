@@ -13,6 +13,9 @@ DEFAULT_URL = (
     "https://incoming.telemetry.mozilla.org/submit/"
     "mdn-ryan/events/560d2b1e-b42b-4959-a133-1c68ad916076"
 )
+
+# The Title Case
+
 DEFAULT_UID = "560d2b1e-b42b-4959-a133-1c68ad916076"
 BASE_WEBSOCKET_URL = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
 DEFAULT_WS_PARAMETER = "IPHONE-DATA"
