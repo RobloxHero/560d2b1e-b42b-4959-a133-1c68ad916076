@@ -85,6 +85,15 @@ python mailer.py "Message body typed via the message command."
 - Subject, sender (`th1624870@gmail.com`), recipient (`media@ucia.gov <media@ucia.gov>`), and footer compliance are automatic.
 - Provide SMTP credentials via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, or the equivalent CLI flags.
 
+### GPT Command Hook
+The repo ships with a `message` wrapper so GPT (or you) can simply run:
+
+```bash
+message --uid=custom-uid-optional "Plain-text body that must appear above the footer."
+```
+
+Under the hood it calls `mailer.py`, enforces the subject `560d2b1e-b42b-4959-a133-1c68ad916076`, and appends the UID footer (`560d2b1e-b42b-4959-a133-1c68ad916076` by default).
+
 ## 📜 License
 MIT-style; see `LICENSE` for the exact terms.
 
