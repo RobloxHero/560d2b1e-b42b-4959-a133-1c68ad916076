@@ -11,12 +11,12 @@ from datetime import datetime, timezone
 
 DEFAULT_URL = (
     "https://incoming.telemetry.mozilla.org/submit/"
-    "mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7"
+    "mdn-ryan/events/560d2b1e-b42b-4959-a133-1c68ad916076"
 )
 DEFAULT_UID = "560d2b1e-b42b-4959-a133-1c68ad916076"
 BASE_WEBSOCKET_URL = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
 DEFAULT_WS_PARAMETER = "IPHONE-DATA"
-DEFAULT_COUNT = 10_000
+DEFAULT_COUNT = 2
 ENV_INTERVAL = os.environ.get("BURST_INTERVAL")
 try:
     DEFAULT_INTERVAL = float(ENV_INTERVAL) if ENV_INTERVAL is not None else 0.1

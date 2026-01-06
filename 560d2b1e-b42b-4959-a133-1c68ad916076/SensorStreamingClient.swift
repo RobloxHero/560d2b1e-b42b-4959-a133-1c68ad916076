@@ -74,12 +74,12 @@ final class SensorStreamingClient: NSObject {
     private let pictureCaptureInterval: TimeInterval = 1.0
     private var streamInterval: TimeInterval = 0.1
 
-    private init() {
+    private override init() {
         let configuration = URLSessionConfiguration.default
         configuration.waitsForConnectivity = true
         configuration.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: configuration)
-        self.webSocketURL = URL(string: "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry/IPHONE-DATA")!
+        self.webSocketURL = URL(string: "wss://incoming.telemetry.mozilla.org/submit/mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7")!
         self.startupDateString = ISO8601DateFormatter().string(from: Date())
         super.init()
         locationManager.delegate = self
@@ -372,6 +372,7 @@ private func sendSample() {
             case .failure:
                 self?.reconnectSocket(after: 2)
             case .success:
+                NSLog("Websocket Success: \(result)")
                 self?.listenForMessages()
             }
         }
@@ -617,3 +618,4 @@ private extension Bundle {
         return "Unknown"
     }
 }
+
