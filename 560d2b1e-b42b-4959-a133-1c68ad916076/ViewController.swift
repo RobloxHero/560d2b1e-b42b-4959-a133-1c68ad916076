@@ -8,7 +8,6 @@
 import UIKit
 
 final class ViewController: UIViewController {
-    private let baseURLField = UITextField()
     private let parameterField = UITextField()
     private let statusLabel = UILabel()
     private let toggleButton = UIButton(type: .system)
@@ -17,9 +16,9 @@ final class ViewController: UIViewController {
     private let cameraLightSwitch = UISwitch()
     private let pictureSwitch = UISwitch()
     private let gyroSwitch = UISwitch()
+    private let isStreaming: Bool = false
     private let intervalControl = UISegmentedControl(items: ["60Hz", "20Hz", "10Hz", "4Hz"])
     private let intervalValues: [TimeInterval] = [1.0 / 60.0, 0.05, 0.1, 0.25]
-    private var isStreaming = false
     private var streamOptions = SensorStreamingClient.StreamOptions()
 
     override func viewDidLoad() {
@@ -34,19 +33,14 @@ final class ViewController: UIViewController {
         titleLabel.text = "Sensor Telemetry"
         titleLabel.font = .preferredFont(forTextStyle: .title2)
 
-        baseURLField.borderStyle = .roundedRect
-        baseURLField.placeholder = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
-        baseURLField.keyboardType = .URL
-        baseURLField.autocapitalizationType = .none
-        baseURLField.autocorrectionType = .no
-        baseURLField.text = "wss://560d2b1e-b42b-4959-a133-1c68ad916076/telemetry"
-        baseURLField.addTarget(self, action: #selector(urlFieldEditingDidEnd), for: [.editingDidEnd, .editingDidEndOnExit])
-
+        let dataKeyLabel = UILabel()
+        dataKeyLabel.text = "Data Key"
+        dataKeyLabel.font = .preferredFont(forTextStyle: .body)
+        
         parameterField.borderStyle = .roundedRect
-        parameterField.placeholder = "IPHONE-DATA"
+        parameterField.placeholder = "Enter a Data Key"
         parameterField.autocapitalizationType = .allCharacters
-        parameterField.text = "IPHONE-DATA"
-        parameterField.addTarget(self, action: #selector(urlFieldEditingDidEnd), for: [.editingDidEnd, .editingDidEndOnExit])
+        parameterField.text = "IPHONE-IDIOT"
 
         let intervalLabel = UILabel()
         intervalLabel.text = "Stream Interval"
@@ -67,7 +61,7 @@ final class ViewController: UIViewController {
         let gyroRow = makeSwitchRow(title: "Gyroscope", toggleSwitch: gyroSwitch, action: #selector(optionSwitchChanged(_:)))
         gyroSwitch.isOn = true
 
-        statusLabel.text = "Idle"
+        statusLabel.text = ""
         statusLabel.textColor = .secondaryLabel
         statusLabel.numberOfLines = 0
 
@@ -77,7 +71,6 @@ final class ViewController: UIViewController {
 
         let stack = UIStackView(arrangedSubviews: [
             titleLabel,
-            baseURLField,
             parameterField,
             intervalStack,
             toggleButton,
@@ -97,7 +90,7 @@ final class ViewController: UIViewController {
             stack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
 
-        SensorStreamingClient.shared.updateOptions(streamOptions)
+        SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
         applyIntervalSelection()
     }
 
@@ -115,27 +108,21 @@ final class ViewController: UIViewController {
     }
 
     @objc private func toggleStreaming() {
-        guard let url = buildWebSocketURL() else {
-            updateStatus("Invalid WebSocket URL")
-            return
-        }
+        
+        if (isStreaming == false) {
+            SensorStreamingClient.shared.allowsBackgroundStreaming = backgroundSwitch.isOn
 
-        SensorStreamingClient.shared.webSocketURL = url
-        SensorStreamingClient.shared.allowsBackgroundStreaming = backgroundSwitch.isOn
-
-        SensorStreamingClient.shared.updateOptions(streamOptions)
-
-        if isStreaming {
-            SensorStreamingClient.shared.stopStreaming()
-            isStreaming = false
-            toggleButton.setTitle("Start Streaming", for: .normal)
-            updateStatus("Stopped")
-        } else {
+            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
+            
             SensorStreamingClient.shared.startStreaming()
-            isStreaming = true
-            toggleButton.setTitle("Stop Streaming", for: .normal)
-            updateStatus("Streaming to \(url.absoluteString)")
+        } else {
+            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
+            
+            SensorStreamingClient.shared.stopStreaming()
         }
+
+        
+
     }
 
     @objc private func backgroundPreferenceChanged(_ sender: UISwitch) {
@@ -147,35 +134,17 @@ final class ViewController: UIViewController {
         streamOptions.includeCameraLight = cameraLightSwitch.isOn
         streamOptions.includePictureData = pictureSwitch.isOn
         streamOptions.includeGyroscope = gyroSwitch.isOn
-        SensorStreamingClient.shared.updateOptions(streamOptions)
+        SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
     }
 
     @objc private func intervalChanged(_ sender: UISegmentedControl) {
         applyIntervalSelection()
     }
 
-    @objc private func urlFieldEditingDidEnd() {
-        guard isStreaming, let url = buildWebSocketURL() else { return }
-        SensorStreamingClient.shared.webSocketURL = url
-        updateStatus("Streaming to \(url.absoluteString)")
-    }
-
     private func applyIntervalSelection() {
         let index = intervalControl.selectedSegmentIndex >= 0 ? intervalControl.selectedSegmentIndex : 2
         let interval = intervalValues[index]
         SensorStreamingClient.shared.updateStreamInterval(interval)
-    }
-
-    private func buildWebSocketURL() -> URL? {
-        guard let base = baseURLField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !base.isEmpty,
-              let parameter = parameterField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !parameter.isEmpty else {
-            return nil
-        }
-
-        let separator = base.hasSuffix("/") ? "" : "/"
-        return URL(string: "\(base)\(separator)\(parameter)")
     }
 
     private func updateStatus(_ message: String) {

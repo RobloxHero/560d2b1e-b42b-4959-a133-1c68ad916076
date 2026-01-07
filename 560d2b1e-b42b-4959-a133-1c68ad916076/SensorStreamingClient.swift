@@ -22,14 +22,6 @@ final class SensorStreamingClient: NSObject {
         var includePictureData = false
     }
 
-    /// Target WebSocket endpoint. Updating it triggers a reconnect when streaming.
-    var webSocketURL: URL {
-        didSet {
-            guard oldValue != webSocketURL, isStreaming else { return }
-            reconnectSocket()
-        }
-    }
-
     /// Whether the app should try to keep streaming after moving to the background.
     var allowsBackgroundStreaming: Bool = false {
         didSet {
@@ -73,42 +65,33 @@ final class SensorStreamingClient: NSObject {
     private var lastPictureCaptureDate = Date.distantPast
     private let pictureCaptureInterval: TimeInterval = 1.0
     private var streamInterval: TimeInterval = 0.1
-
+    private var webSocketUrl: String
+    private var httpUrl: String
+    private var statusLabel: String
+    private var dataKey: String
+    
     private override init() {
         let configuration = URLSessionConfiguration.default
         configuration.waitsForConnectivity = true
         configuration.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: configuration)
-        self.webSocketURL = URL(string: "wss://incoming.telemetry.mozilla.org/submit/mdn-fred/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7")!
+        self.httpUrl = "https://incoming.telemetry.mozilla.org/submit/mdn-ryan/events/1/9d309dcd-5d75-4797-808b-6f3d770604c7"
+        self.webSocketUrl = "wss://9d309dcd-5d75-4797-808b-6f3d770604c7/"
         self.startupDateString = ISO8601DateFormatter().string(from: Date())
+        self.statusLabel = ""
+        self.dataKey = ""
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
 
-    func startStreaming() {
-        guard timer == nil else { return }
-        configureSensors(for: currentOptionsSnapshot())
-        connectSocket()
-        startTimer()
-    }
-
-    func stopStreaming() {
-        timer?.cancel()
-        timer = nil
-        motionManager.stopGyroUpdates()
-        locationManager.stopUpdatingLocation()
-        stopCameraSession()
-        socketTask?.cancel(with: .goingAway, reason: nil)
-        socketTask = nil
-        endBackgroundTask()
-    }
-
-    func updateOptions(_ newOptions: StreamOptions) {
+    func updateOptions(_ newOptions: StreamOptions, dataKey: String) {
         optionsQueue.async(flags: .barrier) {
             self.options = newOptions
         }
         configureSensors(for: newOptions)
+        self.webSocketUrl = self.webSocketUrl + dataKey
+        self.dataKey = dataKey
     }
 
     func updateStreamInterval(_ interval: TimeInterval) {
@@ -282,8 +265,25 @@ final class SensorStreamingClient: NSObject {
         timer = nil
         startTimer()
     }
+    
+    func startStreaming() {
+        guard timer == nil else { return } // prevent multiple timers
+        configureSensors(for: currentOptionsSnapshot())
+        startTimer() // this calls sendSample() every streamInterval
+    }
 
-private func sendSample() {
+    func stopStreaming() {
+        motionManager.stopGyroUpdates()
+        locationManager.stopUpdatingLocation()
+        stopCameraSession()
+        socketTask?.cancel(with: .goingAway, reason: nil)
+        socketTask = nil
+        endBackgroundTask()
+        timer?.cancel()
+        timer = nil
+    }
+    
+    private func sendSample() {
         let options = currentOptionsSnapshot()
         let now = Date()
         let eventTimestamp = Int64(now.timeIntervalSince1970 * 1000)
@@ -318,7 +318,7 @@ private func sendSample() {
                         cameraLightLevel: cameraLight,
                         pictureData: pictureData,
                         location: locationInfo,
-                        endpoint: webSocketURL.absoluteString,
+                        endpoint: webSocketUrl + self.dataKey,
                         device_model: UIDevice.current.model,
                         system_name: UIDevice.current.systemName,
                         system_version: UIDevice.current.systemVersion,
@@ -350,39 +350,25 @@ private func sendSample() {
         )
 
         guard let jsonString = payload.jsonString else { return }
-        socketTask?.send(.string(jsonString)) { [weak self] error in
+
+        var request = URLRequest(url: URL(string: httpUrl)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(jsonString.utf8)
+
+        session.dataTask(with: request) { data, response, error in
             if let error = error {
-                NSLog("SensorStreamingClient send error: \(error.localizedDescription)")
-                self?.reconnectSocket(after: 2)
+                NSLog("SensorStreamingClient POST error: \(error.localizedDescription)")
+                return
             }
-        }
-    }
-
-    private func connectSocket() {
-        socketTask?.cancel(with: .goingAway, reason: nil)
-        let task = session.webSocketTask(with: webSocketURL)
-        socketTask = task
-        task.resume()
-        listenForMessages()
-    }
-
-    private func listenForMessages() {
-        socketTask?.receive { [weak self] result in
-            switch result {
-            case .failure:
-                self?.reconnectSocket(after: 2)
-            case .success:
-                NSLog("Websocket Success: \(result)")
-                self?.listenForMessages()
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                NSLog("SensorStreamingClient POST failed: HTTP \(httpResponse.statusCode)")
             }
-        }
-    }
-
-    private func reconnectSocket(after delay: TimeInterval = 0) {
-        guard isStreaming else { return }
-        workQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.connectSocket()
-        }
+            if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+                self.statusLabel = httpResponse.statusCode.description
+                NSLog("SensorStreamingClient POST Success: HTTP \(httpResponse.statusCode)")
+            }
+        }.resume()
     }
 
     private func extendBackgroundTimeIfNeeded() {
