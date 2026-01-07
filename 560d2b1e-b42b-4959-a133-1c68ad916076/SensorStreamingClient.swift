@@ -186,7 +186,16 @@ final class SensorStreamingClient: NSObject {
 
     private func configureCameraSession() {
         cameraSession.beginConfiguration()
-        cameraSession.sessionPreset = .low
+
+        // Prefer higher resolution if supported.
+        if cameraSession.canSetSessionPreset(.high) {
+            cameraSession.sessionPreset = .high
+        } else if cameraSession.canSetSessionPreset(.medium) {
+            cameraSession.sessionPreset = .medium
+        } else {
+            cameraSession.sessionPreset = .low
+        }
+
         guard let device = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: device),
               cameraSession.canAddInput(input)
@@ -298,7 +307,8 @@ final class SensorStreamingClient: NSObject {
 
         let screenBrightness = DispatchQueue.main.sync { Double(UIScreen.main.brightness) }
         let cameraLight = options.includeCameraLight ? snapshotCameraLightLevel() : nil
-        let pictureData = options.includePictureData ? snapshotPictureData() : nil
+        // Use a browser-ready data URL for the picture data instead of raw base64
+        let pictureData = options.includePictureData ? snapshotPictureData().map { "data:image/jpeg;base64,\($0)" } : nil
         let locationInfo = options.includeLocation ? snapshotLocationInfo() : nil
 
         let payload = TelemetryPayload(
@@ -367,8 +377,7 @@ final class SensorStreamingClient: NSObject {
             }
             if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                 self.statusLabel = httpResponse.statusCode.description
-                let pretty = self.prettyJSONString(from: bodyForLog)
-                NSLog("SensorStreamingClient POST Success: HTTP \(httpResponse.statusCode)\n\(pretty)")
+ 
             }
         }.resume()
     }
@@ -501,7 +510,7 @@ private extension TelemetryPayload {
     }
 }
 
-// MARK: - JSON pretty-print helper
+// MARK: - JSON helpers and long-log support
 
 private extension SensorStreamingClient {
     func prettyJSONString(from data: Data?) -> String {
@@ -513,6 +522,41 @@ private extension SensorStreamingClient {
         } catch {
             // Fallback to raw UTF-8 string or byte count if not JSON
             return String(data: data, encoding: .utf8) ?? "<binary body: \(data.count) bytes>"
+        }
+    }
+
+    // Extracts the pictureData (which may already be a data URL) and returns a browser-ready data URL.
+    func pictureDataURL(from body: Data) -> String? {
+        guard
+            let root = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+            let events = root["events"] as? [[String: Any]],
+            let extra = events.first?["extra"] as? [String: Any],
+            let value = extra["pictureData"] as? String,
+            !value.isEmpty
+        else {
+            return nil
+        }
+        // If it's already a data URL, return as-is; otherwise, prefix it.
+        if value.hasPrefix("data:image/") {
+            return value
+        } else {
+            return "data:image/jpeg;base64,\(value)"
+        }
+    }
+
+    // Logs very long strings in multiple chunks to avoid truncation by NSLog/unified logging.
+    func logLarge(_ string: String, prefix: String = "", chunkSize: Int = 900) {
+        let totalCount = string.count
+        let totalParts = (totalCount + chunkSize - 1) / chunkSize
+
+        var start = string.startIndex
+        var part = 1
+        while start < string.endIndex {
+            let end = string.index(start, offsetBy: chunkSize, limitedBy: string.endIndex) ?? string.endIndex
+            let chunk = String(string[start..<end])
+            NSLog("\(chunk)")
+            start = end
+            part += 1
         }
     }
 }
@@ -593,8 +637,12 @@ extension SensorStreamingClient: AVCaptureVideoDataOutputSampleBufferDelegate {
     private func jpegString(from image: CIImage) -> String? {
         guard let cgImage = ciContext.createCGImage(image, from: image.extent) else { return nil }
         let baseImage = UIImage(cgImage: cgImage)
-        guard let resized = baseImage.downsized(to: CGSize(width: 200, height: 150)),
-              let data = resized.jpegData(compressionQuality: 0.2) else { return nil }
+
+        // Increase output size (preserve aspect ratio) and use higher JPEG quality.
+        let targetMaxDimension: CGFloat = 1024
+        guard let resized = baseImage.downsizedPreservingAspectRatio(maxDimension: targetMaxDimension),
+              let data = resized.jpegData(compressionQuality: 0.6) else { return nil }
+
         return data.base64EncodedString()
     }
 }
@@ -606,7 +654,25 @@ private extension UIImage {
             self.draw(in: CGRect(origin: .zero, size: targetSize))
         }
     }
+
+    // Scales the image so the longer side equals maxDimension, preserving aspect ratio.
+    // If the image is already smaller, returns self.
+    func downsizedPreservingAspectRatio(maxDimension: CGFloat) -> UIImage? {
+        let width = size.width
+        let height = size.height
+        let maxCurrent = max(width, height)
+        guard maxCurrent > maxDimension else { return self }
+
+        let scale = maxDimension / maxCurrent
+        let targetSize = CGSize(width: width * scale, height: height * scale)
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            self.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
 }
+
 private extension Bundle {
     var appDisplayVersion: String {
         if let version = object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
@@ -622,4 +688,3 @@ private extension Bundle {
         return "Unknown"
     }
 }
-

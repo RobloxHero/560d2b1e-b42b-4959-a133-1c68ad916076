@@ -54,7 +54,7 @@ final class ViewController: UIViewController {
         toggleButton.setTitle("Start Streaming", for: .normal)
         toggleButton.addTarget(self, action: #selector(toggleStreaming), for: .touchUpInside)
 
-        let backgroundRow = makeSwitchRow(title: "Background streaming", toggleSwitch: backgroundSwitch, action: #selector(backgroundPreferenceChanged(_:)))
+        
         let locationRow = makeSwitchRow(title: "Include Location", toggleSwitch: locationSwitch, action: #selector(optionSwitchChanged(_:)))
         let cameraRow = makeSwitchRow(title: "Camera Light Sensor", toggleSwitch: cameraLightSwitch, action: #selector(optionSwitchChanged(_:)))
         let pictureRow = makeSwitchRow(title: "Picture Data", toggleSwitch: pictureSwitch, action: #selector(optionSwitchChanged(_:)))
@@ -74,7 +74,6 @@ final class ViewController: UIViewController {
             parameterField,
             intervalStack,
             toggleButton,
-            backgroundRow,
             toggleStack,
             statusLabel
         ])
