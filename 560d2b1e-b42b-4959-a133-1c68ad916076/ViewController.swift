@@ -16,7 +16,7 @@ final class ViewController: UIViewController {
     private let cameraLightSwitch = UISwitch()
     private let pictureSwitch = UISwitch()
     private let gyroSwitch = UISwitch()
-    private let isStreaming: Bool = false
+    private var isStreaming: Bool = false
     private let intervalControl = UISegmentedControl(items: ["60Hz", "20Hz", "10Hz", "4Hz"])
     private let intervalValues: [TimeInterval] = [1.0 / 60.0, 0.05, 0.1, 0.25]
     private var streamOptions = SensorStreamingClient.StreamOptions()
@@ -61,7 +61,7 @@ final class ViewController: UIViewController {
         let gyroRow = makeSwitchRow(title: "Gyroscope", toggleSwitch: gyroSwitch, action: #selector(optionSwitchChanged(_:)))
         gyroSwitch.isOn = true
 
-        statusLabel.text = ""
+        statusLabel.text = SensorStreamingClient.shared.statusLabel
         statusLabel.textColor = .secondaryLabel
         statusLabel.numberOfLines = 0
 
@@ -110,15 +110,19 @@ final class ViewController: UIViewController {
     @objc private func toggleStreaming() {
         
         if (isStreaming == false) {
+            toggleButton.setTitle("Stop Streaming", for: .normal)
             SensorStreamingClient.shared.allowsBackgroundStreaming = backgroundSwitch.isOn
 
             SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
             
             SensorStreamingClient.shared.startStreaming()
+            isStreaming = true
         } else {
+            toggleButton.setTitle("Start Streaming", for: .normal)
             SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
             
             SensorStreamingClient.shared.stopStreaming()
+            isStreaming = false
         }
 
         

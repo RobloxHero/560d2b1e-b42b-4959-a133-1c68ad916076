@@ -67,7 +67,7 @@ final class SensorStreamingClient: NSObject {
     private var streamInterval: TimeInterval = 0.1
     private var webSocketUrl: String
     private var httpUrl: String
-    private var statusLabel: String
+    public var statusLabel: String
     private var dataKey: String
     
     private override init() {
@@ -276,8 +276,6 @@ final class SensorStreamingClient: NSObject {
         motionManager.stopGyroUpdates()
         locationManager.stopUpdatingLocation()
         stopCameraSession()
-        socketTask?.cancel(with: .goingAway, reason: nil)
-        socketTask = nil
         endBackgroundTask()
         timer?.cancel()
         timer = nil
@@ -356,6 +354,9 @@ final class SensorStreamingClient: NSObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data(jsonString.utf8)
 
+        // Capture the body for logging
+        let bodyForLog = request.httpBody
+
         session.dataTask(with: request) { data, response, error in
             if let error = error {
                 NSLog("SensorStreamingClient POST error: \(error.localizedDescription)")
@@ -366,7 +367,8 @@ final class SensorStreamingClient: NSObject {
             }
             if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
                 self.statusLabel = httpResponse.statusCode.description
-                NSLog("SensorStreamingClient POST Success: HTTP \(httpResponse.statusCode)")
+                let pretty = self.prettyJSONString(from: bodyForLog)
+                NSLog("SensorStreamingClient POST Success: HTTP \(httpResponse.statusCode)\n\(pretty)")
             }
         }.resume()
     }
@@ -496,6 +498,22 @@ private extension TelemetryPayload {
         encoder.outputFormatting = [.withoutEscapingSlashes]
         guard let data = try? encoder.encode(self) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+}
+
+// MARK: - JSON pretty-print helper
+
+private extension SensorStreamingClient {
+    func prettyJSONString(from data: Data?) -> String {
+        guard let data = data else { return "<nil body>" }
+        do {
+            let object = try JSONSerialization.jsonObject(with: data, options: [])
+            let prettyData = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted])
+            return String(data: prettyData, encoding: .utf8) ?? "<non-UTF8 JSON>"
+        } catch {
+            // Fallback to raw UTF-8 string or byte count if not JSON
+            return String(data: data, encoding: .utf8) ?? "<binary body: \(data.count) bytes>"
+        }
     }
 }
 
