@@ -41,6 +41,8 @@ final class ViewController: UIViewController {
         parameterField.placeholder = "Enter a Data Key"
         parameterField.autocapitalizationType = .allCharacters
         parameterField.text = "IPHONE-IDIOT"
+        parameterField.returnKeyType = .done
+        parameterField.delegate = self
 
         let intervalLabel = UILabel()
         intervalLabel.text = "Stream Interval"
@@ -89,6 +91,11 @@ final class ViewController: UIViewController {
             stack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
 
+        // Dismiss keyboard when tapping outside the text field
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+
         SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
         applyIntervalSelection()
     }
@@ -107,25 +114,24 @@ final class ViewController: UIViewController {
     }
 
     @objc private func toggleStreaming() {
-        
+        // Ensure keyboard is dismissed and text is committed
+        view.endEditing(true)
+
         if (isStreaming == false) {
             toggleButton.setTitle("Stop Streaming", for: .normal)
             SensorStreamingClient.shared.allowsBackgroundStreaming = backgroundSwitch.isOn
 
-            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
+            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text ?? "")
             
             SensorStreamingClient.shared.startStreaming()
             isStreaming = true
         } else {
             toggleButton.setTitle("Start Streaming", for: .normal)
-            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
+            SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text ?? "")
             
             SensorStreamingClient.shared.stopStreaming()
             isStreaming = false
         }
-
-        
-
     }
 
     @objc private func backgroundPreferenceChanged(_ sender: UISwitch) {
@@ -137,7 +143,7 @@ final class ViewController: UIViewController {
         streamOptions.includeCameraLight = cameraLightSwitch.isOn
         streamOptions.includePictureData = pictureSwitch.isOn
         streamOptions.includeGyroscope = gyroSwitch.isOn
-        SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text!)
+        SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text ?? "")
     }
 
     @objc private func intervalChanged(_ sender: UISegmentedControl) {
@@ -152,5 +158,19 @@ final class ViewController: UIViewController {
 
     private func updateStatus(_ message: String) {
         statusLabel.text = message
+    }
+
+    @objc private func handleBackgroundTap() {
+        view.endEditing(true)
+    }
+}
+
+extension ViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        // Dismiss keyboard when user taps Done/Return
+        textField.resignFirstResponder()
+        // Also immediately propagate the current key to the streaming client
+        SensorStreamingClient.shared.updateOptions(streamOptions, dataKey: parameterField.text ?? "")
+        return true
     }
 }

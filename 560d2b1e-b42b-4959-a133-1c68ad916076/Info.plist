@@ -26,9 +26,5 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera access is required to stream light sensor data and snapshot thumbnails.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Location access is required to include GPS telemetry in the stream.</string>
 </dict>
 </plist>
